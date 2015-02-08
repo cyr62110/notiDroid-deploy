@@ -1,0 +1,27 @@
+{
+    "id": "controller-clients-web-admin",
+    "kind": "ReplicationController",
+    "apiVersion": "v1beta1",
+    "desiredState": {
+    "replicas": 1,
+    "replicaSelector": {"name": "clients-web-admin"},
+    "podTemplate": {
+        "desiredState": {
+            "manifest": {
+                "version": "v1beta1",
+                "id": "pod-clients-web-admin",
+                "containers": [{
+                    "name": "web-admin",
+                    "image": "gcr.io/notiwatchprod/notidroid-clients-web-admin:0.4",
+                    "ports": [{ "containerPort": 80, "hostPort": 8000 }]
+                }]
+            }
+        },
+        "labels": {
+            "name": "clients-web-admin"
+        }
+    },
+    labels: {
+        "name": "clients-web-admin"
+    }
+}
