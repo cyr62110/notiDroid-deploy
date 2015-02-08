@@ -1,0 +1,22 @@
+ext {
+    //Location of the root of all projects associated to noti.Watch, this one included
+    sourceProjectsRoot = file('..').absolutePath
+}
+
+subprojects {
+    ext {
+        googleContainerEngine = [
+            zone: "europe-west1-b",
+            cluster: "alpha",
+            //Replace all - by _ in the projectId, otherwise you will not be able to use Google Container Registry.
+            projectId: "notiwatchprod"
+        ]
+
+        //Location of source files that will be build and deployed by the subproject.
+        sourceProjectPath = rootProject.ext.sourceProjectsRoot + '/' + rootProject.relativePath(project.projectDir)
+    }
+
+    task clean(type: Delete) {
+        delete buildDir
+    }
+}

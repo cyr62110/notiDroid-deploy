@@ -1,0 +1,108 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+ext {
+    server = [ 
+        //http or https : Defines which configuration files will be copied in the resulting container
+        protocol: "http",
+        name: "admin.alpha.noti.watch",
+        ports: [
+            http: "80",
+            https: "443"
+        ],
+        numberOfWorker: "5"
+    ]
+
+    container = [
+        user: "cyr62110", //Your username used to publish container on the Docker Hub.
+        name: "notidroid-clients-web-admin",
+        version: "0.4"
+    ]
+
+    gruntOutputDir = "$sourceProjectPath/dist"
+    copyOutputDir = buildDir.path + File.separator + "admin"
+    confInputDir = "conf"
+}
+
+task run {
+    println "$sourceProjectPath"
+}
+
+/**
+ * Angular.JS Front are built using Grunt.
+ * Running 'grunt build' will make Grunt concat, minify, optimise all HTML, SASS, CSS, JS sources
+ * and produce a dist folder containing the administration console website.
+ */
+task gruntBuild(type: Exec) {
+    workingDir "$sourceProjectPath"
+    commandLine 'grunt', 'build'
+}
+
+/**
+ * Copy the dist directory produced by Grunt to make it available
+ * to our docker build context.
+ */
+task copyBuildDir(type: Copy, dependsOn: 'gruntBuild') {
+    from "$gruntOutputDir"
+    into "$copyOutputDir"
+}
+
+/**
+ * Copy the NGinx configuration to the build directory.
+ * Tokens are replaced by values declared in the 'ext.server' map.
+ * TODO : Add a way to select between the http conf and the https one.
+ */
+task copyWebServerConf(type: Copy) {
+    def filterTokens = [
+        NAME: project.ext.server.name,
+        HTTP: project.ext.server.ports.http,
+        HTTPS: project.ext.server.ports.https,
+        WORKER: project.ext.server.numberOfWorker,
+    ]
+    from("$confInputDir") {
+        include "nginx.conf"
+        filter(ReplaceTokens, tokens: filterTokens)
+    }
+    from("$confInputDir/$server.protocol") {
+        filter(ReplaceTokens, tokens: filterTokens)   
+    }
+    into buildDir
+
+}
+
+/**
+ * Copy the Dockerfile that will be used to build our server.
+ * Tokens are replaced by values declared in 'ext.server' and 'ext.container' maps.
+ */
+task copyDockerfile(type: Copy) {
+    def filterTokens = [
+        PORTS: project.ext.server.ports.http + " " + project.ext.server.ports.https, //TODO: find a way to remove the https port when the server is configured in http only
+    ]
+    from(".") {
+        include 'Dockerfile'
+        filter(ReplaceTokens, tokens: filterTokens)
+        //filter(ReplaceTokens, tokens: filterTokens, beginToken: '|', endToken: '|')
+    }
+    into buildDir
+    
+}
+
+task buildContainer(type: Exec, dependsOn: ['copyBuildDir', 'copyWebServerConf', 'copyDockerfile']) {
+    workingDir buildDir
+    commandLine 'docker', 'build', "-t", "$container.user/$container.name:$container.version", "."
+}
+
+task runLocally(type: Exec, dependsOn: 'buildContainer') {
+    commandLine 'docker', 'run', '-d', '-P', "$container.user/$container.name:$container.version"
+}
+
+task pushContainer(type: Exec, dependsOn: 'buildContainer') {
+    commandLine 'docker', 'push', "$container.user/$container.name:$container.version"
+}
+
+task tagContainerGKE(type: Exec, dependsOn: ['buildContainer']) {
+    commandLine 'docker', 'tag', '-f', "$container.user/$container.name:$container.version", "gcr.io/$googleContainerEngine.projectId/$container.name:$container.version"
+}
+
+task pushContainerGKE(type: Exec, dependsOn: 'tagContainerGKE') {
+    commandLine 'gcloud', 'preview', 'docker', 'push', "gcr.io/$googleContainerEngine.projectId/$container.name:$container.version"
+}
