@@ -82,7 +82,7 @@ task createNginxBasicAuthUserFile << {
     }
 }
 
-task build(type: Exec, dependsOn: ['copyDockerfile', 'copyEntrypointScript', 'copyNeo4JConfiguration', 'copyNginxConfiguration']) {
+task build(type: Exec, dependsOn: [':base/java7:build', 'copyDockerfile', 'copyEntrypointScript', 'copyNeo4JConfiguration', 'copyNginxConfiguration']) {
     workingDir buildDir
     commandLine 'docker', 'build', "-t", "$container.user/$container.name", "."
 }
