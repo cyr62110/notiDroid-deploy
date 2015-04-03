@@ -20,3 +20,7 @@ subprojects {
         delete buildDir
     }
 }
+
+task wrapper(type: Wrapper) {
+    gradleVersion = '2.3'
+}
