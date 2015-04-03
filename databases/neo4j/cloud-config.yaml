@@ -1,0 +1,13 @@
+#cloud-config
+
+hostname: c1.noti.watch
+users:
+  - name: cvlaminck
+    passwd: $1$RjB087CL$jC1JDN82KTJ5GVh4qGzbH1
+    groups:
+      - sudo
+      - docker
+coreos:
+  units:
+    - name: etcd.service
+      command: start

@@ -1,0 +1,26 @@
+# All other flavors inherit the `common' config snippet
+common: &common
+    issue: '"docker-registry server"'
+    # Default log level is info
+    loglevel: info
+    # Enable debugging (additional informations in the output of the _ping endpoint)
+    debug: false
+    # By default, the registry acts standalone (eg: doesn't query the index)
+    standalone: true
+    # The default endpoint to use (if NOT standalone) is index.docker.io
+    index_endpoint: https://index.docker.io
+    # Storage redirect is disabled
+    storage_redirect: 
+    # Token auth is enabled (if NOT standalone)
+    disable_token_auth: 
+    # No priv key
+    privileged_key: 
+    # No search backend
+    search_backend: sqlalchemy
+    # SQLite search backend
+    sqlalchemy_index_database: sqlite:////var/docker-registry/docker-registry.db
+
+local: &local
+    <<: *common
+    storage: local
+    storage_path: /var/docker-registry/registry

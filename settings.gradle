@@ -1,1 +1,8 @@
+include 'base/base';
+
+include 'registry';
+
+include 'databases/neo4j';
+include 'databases/mongodb';
+
 include 'clients/web/admin';

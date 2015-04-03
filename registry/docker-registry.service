@@ -1,0 +1,11 @@
+[Unit]
+Description=Private docker-registry
+After=docker.service
+Requires=docker.service
+
+[Service]
+ExecStart=/usr/bin/docker run --name docker-registry --rm cyr62110/notidroid-registry
+ExecStop=/usr/bin/docker kill docker-registry
+
+[Install]
+WantedBy=multi-user.target

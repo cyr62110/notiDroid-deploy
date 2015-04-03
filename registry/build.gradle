@@ -1,0 +1,97 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+ext {
+    server = [ 
+        //http or https : Defines which configuration files will be copied in the resulting container
+        protocol: "http",
+        name: "registry.noti.watch",
+        realm: "noti.watch",
+        port: "5000",
+        numberOfWorker: "10"
+    ]
+    credentials = [
+        [
+            username: "admin",
+            password: "admin",
+        ]
+    ]
+    container = [
+        user: "cyr62110", //Your username used to publish container on the Docker Hub.
+        name: "notidroid-registry",
+        version: "1.0"
+    ]
+
+    nginxConfTemplateDir = "conf/nginx"
+    registryConfTemplateDir = "conf/registry"
+}
+
+/**
+ * Copy the Dockerfile that will be used to build our image.
+ */
+task copyDockerfile(type: Copy) {
+    def tokens = [
+        PORT: project.ext.server.port,
+        PROTOCOL: project.ext.server.protocol,
+    ]
+    from(".") {
+        include 'Dockerfile'
+        filter(ReplaceTokens, tokens: tokens)
+    }
+    into buildDir
+}
+
+task copyEntrypointScript(type: Copy) {
+    from(".") {
+        include 'entrypoint.sh'
+    }
+    into buildDir
+}
+
+task copyNginxConfiguration(dependsOn: ['copyNginxTemplatedConfigurationFiles', 'createNginxBasicAuthUserFile'])
+
+task copyNginxTemplatedConfigurationFiles(type: Copy) {
+    def tokens = [
+        NAME: project.ext.server.name,
+        REALM: project.ext.server.realm,
+        PORT: project.ext.server.port,
+        WORKER: project.ext.server.numberOfWorker,
+    ]
+    from(nginxConfTemplateDir) {
+        include 'nginx.conf'
+        include server.protocol + '.conf'
+        filter(ReplaceTokens, tokens: tokens)
+    }
+    into "$buildDir/conf/nginx"
+}
+
+task createNginxBasicAuthUserFile << {
+    def userFile = file("$buildDir/conf/nginx/user_file")
+    userFile.text = ""
+    for(credentials in project.ext.credentials) {
+        userFile.append "${credentials.username}:{PLAIN}${credentials.password}\n"
+    }
+}
+
+task copyDockerRegistryConfiguration(type: Copy) {
+    from(registryConfTemplateDir) {
+        include 'config.yml'
+    }
+    into "$buildDir/conf/registry"
+}
+
+task build(type: Exec, dependsOn: [':base/base:build', 'copyDockerfile', 'copyEntrypointScript', 'copyNginxConfiguration', 'copyDockerRegistryConfiguration']) {
+    workingDir buildDir
+    commandLine 'docker', 'build', "-t", "$container.user/$container.name", "."
+}
+
+task tagRelease(type: Exec, dependsOn:['build']) {
+    commandLine 'docker', 'tag', '-f', "$container.user/$container.name", "$container.user/$container.name:$container.version"
+}
+
+task runLocally(type: Exec, dependsOn: 'build') {
+    commandLine 'docker', 'run', '-d', "$container.user/$container.name", "/bin/bash"
+}
+
+task pushContainer(type: Exec, dependsOn: 'tagRelease') {
+    commandLine 'docker', 'push', "$container.user/$container.name:$container.version"
+}

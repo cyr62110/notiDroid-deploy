@@ -1,0 +1,60 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+ext {
+    server = [
+        port: 6661,
+    ]
+    credentials = [
+        [
+            username: "notidroid",
+            password: "test"
+        ]
+    ]
+    container = [
+        user: "cyr62110", //Your username used to publish container on the Docker Hub.
+        name: "notidroid-databases-mongodb",
+        version: "1.0"
+    ]
+
+    mongoConfTemplateDir = "conf/"
+}
+
+/**
+ * Copy the Dockerfile that will be used to build our image.
+ */
+task copyDockerfile(type: Copy) {
+    def tokens = [
+        PORT: project.ext.server.port,
+    ]
+    from(".") {
+        include 'Dockerfile'
+    }
+    into buildDir
+}
+
+task copyMongoDBConfiguration(type: Copy) {
+    def tokens = [
+        PORT: project.ext.server.port,
+    ]
+    from(mongoConfTemplateDir) {
+        filter(ReplaceTokens, tokens: tokens)
+    }
+    into "$buildDir/conf/"
+}
+
+task build(type: Exec, dependsOn: ['copyDockerfile', 'copyMongoDBConfiguration']) {
+    workingDir buildDir
+    commandLine 'docker', 'build', "-t", "$container.user/$container.name", "."
+}
+
+task tagRelease(type: Exec, dependsOn:['build']) {
+    commandLine 'docker', 'tag', '-f', "$container.user/$container.name", "$container.user/$container.name:$container.version"
+}
+
+task runLocally(type: Exec, dependsOn: 'build') {
+    commandLine 'docker', 'run', '-d', "$container.user/$container.name", "/bin/bash"
+}
+
+task pushContainer(type: Exec, dependsOn: 'tagRelease') {
+    commandLine 'docker', 'push', "$container.user/$container.name:$container.version"
+}
