@@ -13,8 +13,17 @@ You can remove the alias if this default behavior does not match your requiremen
 The address of the docker is determined using route by the following command:
 route | grep default | tr -s ' ' | cut -d' ' -f 2
 
-/!\ Do not forget to allow connection from the docker0 interface on your etcd server
-running on your host ;).
+##Etcd server configuration
+
+In this section we assume that your docker0 interface has the following ip address: 172.17.42.1.
+If not, replace this address by the one you use on your host.
+
+On Fedora, modify /etc/etcd/etcd.conf and change the following lines:
+ETCD_LISTEN_CLIENT_URLS="http://localhost:4001,http://172.17.42.1:4001"
+ETCD_ADVERTISE_CLIENT_URLS="http://localhost:4001,http://172.17.42.1:4001"
+
+Then restart your server:
+systemctl restart etcd
 
 ##Changelog
 
