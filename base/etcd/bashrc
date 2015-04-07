@@ -1,0 +1,3 @@
+export DOCKER_HOST=$(route | grep default | tr -s ' ' | cut -d' ' -f 2)
+
+alias etcdctl="/usr/local/bin/etcdctl -C $DOCKER_HOST:4001"

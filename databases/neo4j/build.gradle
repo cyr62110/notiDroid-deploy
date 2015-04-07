@@ -11,14 +11,19 @@ ext {
     ]
     credentials = [
         [
-            username: "admin",
-            password: "admin"
+            username: "neo4j",
+            password: "MXwma7vNxgLw"
         ]
     ]
     container = [
         user: "cyr62110", //Your username used to publish container on the Docker Hub.
         name: "notidroid-databases-neo4j",
         version: "1.0"
+    ]
+    privateRepository = [
+        user: "registry",
+        password: "wL6cHmQQXmE4",
+        host:"registry.noti.watch:5000"
     ]
 
     neo4jConfTemplateDir = "conf/neo4j"
