@@ -1,0 +1,45 @@
+ext {
+    container = [
+        user: "cyr62110", //Your username used to publish container on the Docker Hub.
+        name: "reverse-proxy",
+        version: "1.0"
+    ]
+}
+
+task copyDockerfile(type: Copy) {
+    from(".") {
+        include 'Dockerfile'
+    }
+    into buildDir
+}
+
+task copyScripts(type: Copy) {
+    from("./scripts") {
+        include '*'
+    }
+    into "$buildDir/scripts"
+}
+
+task copyNginxConf(type: Copy) {
+    from("./conf") {
+        include '*'
+    }
+    into "$buildDir/conf"
+}
+
+task build(type: Exec, dependsOn: ['copyDockerfile', 'copyScripts', 'copyNginxConf']) {
+    workingDir buildDir
+    commandLine 'docker', 'build', "-t", "$container.user/$container.name", "."
+}
+
+task tagRelease(type: Exec, dependsOn:['build']) {
+    commandLine 'docker', 'tag', '-f', "$container.user/$container.name", "$container.user/$container.name:$container.version"
+}
+
+task runLocally(type: Exec, dependsOn: 'build') {
+    commandLine 'docker', 'run', '-d', "$container.user/$container.name", "/bin/bash"
+}
+
+task pushContainer(type: Exec, dependsOn: 'tagRelease') {
+    commandLine 'docker', 'push', "$container.user/$container.name:$container.version"
+}

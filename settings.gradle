@@ -1,8 +1,7 @@
 include 'base/base';
 include 'base/etcd';
 include 'base/java7';
-
-include 'registry';
+include 'base/reverse-proxy';
 
 include 'databases/neo4j';
 include 'databases/mongodb';
